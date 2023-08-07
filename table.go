@@ -6,7 +6,8 @@ import (
 )
 
 type Table struct {
-	Rows []Row
+	Rows      []*Row
+	Separator string
 }
 
 type Row struct {
@@ -18,7 +19,9 @@ type Cell struct {
 }
 
 func New() *Table {
-	return &Table{}
+	return &Table{
+		Separator: "   ",
+	}
 }
 
 func (t *Table) ColumnsWidth() []int {
@@ -28,7 +31,7 @@ func (t *Table) ColumnsWidth() []int {
 	lens := make([]int, len(t.Rows[0].Cells))
 	for _, row := range t.Rows {
 		for i, cell := range row.Cells {
-			if l := len(cell.Text); l > lens[i] {
+			if l := len([]rune(cell.Text)); l > lens[i] {
 				lens[i] = l
 			}
 		}
@@ -43,11 +46,11 @@ func (t *Table) String() string {
 	for _, row := range t.Rows {
 		for i, cell := range row.Cells {
 			b.WriteString(cell.Text)
-			if s := widths[i] - len(cell.Text); s > 0 {
+			if s := widths[i] - len([]rune(cell.Text)); s > 0 {
 				b.WriteString(strings.Repeat(" ", s))
 			}
 			if i != len(row.Cells)-1 {
-				b.WriteString("   ")
+				b.WriteString(t.Separator)
 			}
 		}
 		b.WriteString("\n")

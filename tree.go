@@ -13,7 +13,7 @@ type Node struct {
 
 func (n *Node) Rows(skip int, column int, last bool, parentLast bool) []*Row {
 	rows := make([]*Row, 1)
-	cells := make([]Cell, column)
+	cells := make([]*Cell, column)
 	if skip != 0 {
 
 		for i := 0; i < skip; i++ {
@@ -30,7 +30,7 @@ func (n *Node) Rows(skip int, column int, last bool, parentLast bool) []*Row {
 		}
 
 	}
-	cells[skip] = Cell{Text: n.Text}
+	cells[skip] = &Cell{Text: n.Text}
 	rows[0] = &Row{Cells: cells}
 	for i, node := range n.SubNodes {
 		rows = append(rows, node.Rows(skip+1, column, i == len(n.SubNodes)-1, last)...)

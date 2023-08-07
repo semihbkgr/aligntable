@@ -11,11 +11,29 @@ type Table struct {
 }
 
 type Row struct {
-	Cells []Cell
+	Cells []*Cell
 }
 
 type Cell struct {
-	Text string
+	Text      string
+	Alignment Alignment
+}
+
+func (c *Cell) Len() int {
+	return len([]rune(c.Text))
+}
+
+func (c *Cell) AlignedString(w int) string {
+	switch c.Alignment {
+	case AlignLeft:
+		return fmt.Sprintf("%*s", -w, c.Text)
+	case AlignCenter:
+		return fmt.Sprintf("%*s", -w, fmt.Sprintf("%*s", (w+c.Len())/2, c.Text))
+	case AlignRight:
+		return fmt.Sprintf("%*s", w, c.Text)
+	default:
+		return ""
+	}
 }
 
 func New() *Table {
@@ -45,10 +63,7 @@ func (t *Table) String() string {
 	fmt.Println(widths)
 	for _, row := range t.Rows {
 		for i, cell := range row.Cells {
-			b.WriteString(cell.Text)
-			if s := widths[i] - len([]rune(cell.Text)); s > 0 {
-				b.WriteString(strings.Repeat(" ", s))
-			}
+			b.WriteString(cell.AlignedString(widths[i]))
 			if i != len(row.Cells)-1 {
 				b.WriteString(t.Separator)
 			}
@@ -57,3 +72,11 @@ func (t *Table) String() string {
 	}
 	return b.String()
 }
+
+type Alignment int
+
+const (
+	AlignLeft Alignment = iota
+	AlignCenter
+	AlignRight
+)

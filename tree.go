@@ -15,7 +15,14 @@ type Node struct {
 }
 
 func (n *Node) Len() int {
-	return len([]rune(n.Text))
+	lines := strings.Split(n.Text, "\n")
+	i := 0
+	for _, line := range lines {
+		if l := len([]rune(line)); l > i {
+			i = l
+		}
+	}
+	return i
 }
 
 func (n *Node) NodeRows(skip int, column int) []*Row {
@@ -82,16 +89,30 @@ func cellArrows(t *Table, parentIndex int, childIndexes []int, column int, colum
 		return
 	}
 	for arrowIndex := parentIndex + 1; arrowIndex <= childIndexes[len(childIndexes)-1]; arrowIndex++ {
+		cell := t.Rows[arrowIndex].Cells[column]
 		if containsInt(childIndexes, arrowIndex) {
 			if arrowIndex == childIndexes[len(childIndexes)-1] {
-				t.Rows[arrowIndex].Cells[column].Text = fmt.Sprintf("└%s", strings.Repeat("─", columnWidth-1))
+				cell.Text = fmt.Sprintf("└%s", strings.Repeat("─", columnWidth-1))
 			} else {
-				t.Rows[arrowIndex].Cells[column].Text = fmt.Sprintf("├%s", strings.Repeat("─", columnWidth-1))
+				cell.Text = fmt.Sprintf("├%s", strings.Repeat("─", columnWidth-1))
+				for i := 1; i < t.Rows[arrowIndex].rowLineLen(); i++ {
+					if i == 0 {
+						cell.Text += "│"
+					} else {
+						cell.Text += "\n│"
+					}
+				}
 			}
 		} else {
-			t.Rows[arrowIndex].Cells[column].Text = "│"
+			for i := 0; i < t.Rows[arrowIndex].rowLineLen(); i++ {
+				if i == 0 {
+					cell.Text += "│"
+				} else {
+					cell.Text += "\n│"
+				}
+			}
 		}
-		t.Rows[arrowIndex].Cells[column].Alignment = AlignLeft
+		cell.Alignment = AlignLeft
 	}
 }
 

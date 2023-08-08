@@ -1,6 +1,9 @@
 package aligntable
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Tree struct {
 	Nodes []*Node
@@ -11,38 +14,32 @@ type Node struct {
 	SubNodes []*Node
 }
 
-func (n *Node) Rows(skip int, column int, last bool, parentLast bool) []*Row {
-	rows := make([]*Row, 1)
+func (n *Node) Len() int {
+	return len([]rune(n.Text))
+}
+
+func (n *Node) NodeRows(skip int, column int) []*Row {
+	rows := make([]*Row, 1, 1+len(n.SubNodes))
 	cells := make([]*Cell, column)
-	if skip != 0 {
-
-		for i := 0; i < skip; i++ {
-			if i == skip-2 && parentLast {
-				break
-			}
-			cells[i].Text = "│"
-		}
-
-		if last {
-			cells[skip-1].Text = "└───────────────────"
-		} else {
-			cells[skip-1].Text = "├───────────────────"
-		}
-
+	for i := 0; i < skip; i++ {
+		cells[i] = &Cell{}
 	}
-	cells[skip] = &Cell{Text: n.Text}
+	cells[skip] = &Cell{Text: n.Text, Alignment: AlignLeft}
+	for i := skip + 1; i < column; i++ {
+		cells[i] = &Cell{}
+	}
 	rows[0] = &Row{Cells: cells}
-	for i, node := range n.SubNodes {
-		rows = append(rows, node.Rows(skip+1, column, i == len(n.SubNodes)-1, last)...)
+	for _, node := range n.SubNodes {
+		rows = append(rows, node.NodeRows(skip+1, column)...)
 	}
 	return rows
 }
 
-func (n *Node) Count(i int) int {
+func (n *Node) Width(i int) int {
 	i++
 	c := i
 	for _, node := range n.SubNodes {
-		t := node.Count(i)
+		t := node.Width(i)
 		if t > c {
 			c = t
 		}
@@ -52,11 +49,57 @@ func (n *Node) Count(i int) int {
 
 func (t *Tree) Table() *Table {
 	table := New()
-	c := (&Node{SubNodes: t.Nodes}).Count(-1)
-	fmt.Println(c)
-	for i, node := range t.Nodes {
-		table.Rows = append(table.Rows, node.Rows(0, c, i == len(t.Nodes)-1, false)...)
+	r := &Node{SubNodes: t.Nodes}
+	w := r.Width(-1)
+	for _, node := range t.Nodes {
+		table.Rows = append(table.Rows, node.NodeRows(0, w)...)
 	}
+	setArrows(table)
 	table.Separator = " "
 	return table
+}
+
+func setArrows(t *Table) {
+	colsW := t.ColumnsWidth()
+	for i := 0; i < len(colsW); i++ {
+		var parentIndex int
+		var childIndexes []int
+		for rowIndex, row := range t.Rows {
+			if row.Cells[i].Text != "" {
+				cellArrows(t, parentIndex, childIndexes, i, colsW[i])
+				parentIndex = rowIndex
+				childIndexes = []int{}
+			} else if i+1 < len(row.Cells) && row.Cells[i+1].Text != "" {
+				childIndexes = append(childIndexes, rowIndex)
+			}
+		}
+		cellArrows(t, parentIndex, childIndexes, i, colsW[i])
+	}
+}
+
+func cellArrows(t *Table, parentIndex int, childIndexes []int, column int, columnWidth int) {
+	if len(childIndexes) == 0 {
+		return
+	}
+	for arrowIndex := parentIndex + 1; arrowIndex <= childIndexes[len(childIndexes)-1]; arrowIndex++ {
+		if containsInt(childIndexes, arrowIndex) {
+			if arrowIndex == childIndexes[len(childIndexes)-1] {
+				t.Rows[arrowIndex].Cells[column].Text = fmt.Sprintf("└%s", strings.Repeat("─", columnWidth-1))
+			} else {
+				t.Rows[arrowIndex].Cells[column].Text = fmt.Sprintf("├%s", strings.Repeat("─", columnWidth-1))
+			}
+		} else {
+			t.Rows[arrowIndex].Cells[column].Text = "│"
+		}
+		t.Rows[arrowIndex].Cells[column].Alignment = AlignLeft
+	}
+}
+
+func containsInt(s []int, n int) bool {
+	for _, i := range s {
+		if i == n {
+			return true
+		}
+	}
+	return false
 }

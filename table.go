@@ -60,7 +60,6 @@ func (t *Table) ColumnsWidth() []int {
 func (t *Table) String() string {
 	b := strings.Builder{}
 	widths := t.ColumnsWidth()
-	fmt.Println(widths)
 	for _, row := range t.Rows {
 		for i, cell := range row.Cells {
 			b.WriteString(cell.AlignedString(widths[i]))

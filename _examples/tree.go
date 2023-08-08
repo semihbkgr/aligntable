@@ -8,7 +8,6 @@ import (
 
 func main() {
 	t := aligntable.Tree{}
-
 	t.Nodes = []*aligntable.Node{
 		{
 			Text: "Fruits",

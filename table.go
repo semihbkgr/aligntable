@@ -2,6 +2,7 @@ package aligntable
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -40,34 +41,43 @@ func (c *Cell) Len() int {
 }
 
 func (c *Cell) Lines() []string {
-	return strings.Split(c.Text, "\n")
+	return strings.Split(extractColor(c.Text), "\n")
 }
 
 func (c *Cell) AlignedStrings(w int) []string {
 	switch c.Alignment {
 	case AlignLeft:
-		return eachLine(c.Text, func(s string) string {
-			return fmt.Sprintf("%*s", -w, s)
+		return eachLineRaw(c.Text, func(s string, r string) string {
+			return fmt.Sprintf("%s%s", s, strings.Repeat(" ", w-len([]rune(r))))
 		})
 	case AlignCenter:
-		return eachLine(c.Text, func(s string) string {
-			return fmt.Sprintf("%*s", -w, fmt.Sprintf("%*s", (w+c.Len())/2, s))
+		return eachLineRaw(c.Text, func(s string, r string) string {
+			sub := (w - len([]rune(r))) / 2
+			rem := (w - len([]rune(r))) % 2
+			return fmt.Sprintf("%s%s%s", strings.Repeat(" ", sub), s, strings.Repeat(" ", sub+rem))
 		})
 	case AlignRight:
-		return eachLine(c.Text, func(s string) string {
-			return fmt.Sprintf("%*s", w, s)
+		return eachLineRaw(c.Text, func(s string, r string) string {
+			return fmt.Sprintf("%s%s", strings.Repeat(" ", w-len([]rune(r))), s)
 		})
 	default:
 		return nil
 	}
 }
 
-func eachLine(s string, f func(string) string) []string {
+func eachLineRaw(s string, f func(line string, raw string) string) []string {
 	lines := strings.Split(s, "\n")
+	rawLines := strings.Split(extractColor(s), "\n")
 	for i, line := range lines {
-		lines[i] = f(line)
+		lines[i] = f(line, rawLines[i])
 	}
 	return lines
+}
+
+func extractColor(input string) string {
+	re := regexp.MustCompile("\x1b\\[(\\d+;)*\\d+m")
+	cleaned := re.ReplaceAllString(input, "")
+	return cleaned
 }
 
 func New() *Table {
